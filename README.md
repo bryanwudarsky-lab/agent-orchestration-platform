@@ -2,7 +2,7 @@
 
 My field is financial analysis, business analysis, and operations: two USF business degrees (B.S. Personal Financial Planning and B.S. Marketing), relationship banking at Truist, and service operations at Geek Squad, with no formal software training. Agentic OS is the clearest evidence of how I handle process and data: a self-hosted dashboard that schedules, launches, and monitors my own automated jobs, records an outcome for every run, and routes future work by measured success rate rather than fixed rules. The jobs are AI agent runs driven through Claude Code, and I design, build, and test the system myself, with the same AI coding assistance for implementation. It is about 13,800 lines of TypeScript behind 31 API routes and 17 SQLite tables, running on a server I administer myself. The application source stays private because the running instance is wired into my personal data (calendar, health logs, a markdown knowledge base). What transfers is the process, so this page is the process: how the system works, how I build, what broke, and what I changed because of it.
 
-Portfolio: (link added at launch) | [linkedin.com/in/bryanwudarsky](https://www.linkedin.com/in/bryanwudarsky)
+Portfolio: [bryanwudarsky-lab.github.io](https://bryanwudarsky-lab.github.io) | [linkedin.com/in/bryanwudarsky](https://www.linkedin.com/in/bryanwudarsky)
 
 | Measure | August 2026 snapshot |
 |---|---|
