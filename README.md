@@ -1,41 +1,43 @@
-# Agent orchestration platform
+# Agentic OS: agent orchestration platform
 
-I have a finance degree and no formal software training. I taught myself full-stack development by building this system: a self-hosted web dashboard that schedules, launches, and monitors AI agent runs, records what every run produced, and uses that history to route future work. It is about 13,800 lines of TypeScript behind 31 API routes and 17 SQLite tables, and it runs on a server in my house that I administer myself. The application source stays private because the running instance is wired into my personal data (calendar, health logs, a markdown knowledge base). What transfers is the process, so this page is the process: how the system works, how I build with agents, what broke, and what I changed because of it.
+My field is financial analysis, business analysis, and operations: two USF business degrees (B.S. Personal Financial Planning and B.S. Marketing), relationship banking at Truist, and service operations at Geek Squad, with no formal software training. Agentic OS is the clearest evidence of how I handle process and data: a self-hosted dashboard that schedules, launches, and monitors my own automated jobs, records an outcome for every run, and routes future work by measured success rate rather than fixed rules. The jobs are AI agent runs driven through Claude Code, and I design, build, and test the system myself, with the same AI coding assistance for implementation. It is about 13,800 lines of TypeScript behind 31 API routes and 17 SQLite tables, running on a server I administer myself. The application source stays private because the running instance is wired into my personal data (calendar, health logs, a markdown knowledge base). What transfers is the process, so this page is the process: how the system works, how I build, what broke, and what I changed because of it.
 
-| Measure | Current value |
+Portfolio: (link added at launch) | [linkedin.com/in/bryanwudarsky](https://www.linkedin.com/in/bryanwudarsky)
+
+| Measure | August 2026 snapshot |
 |---|---|
 | TypeScript | about 13,800 lines |
 | API route handlers | 31 |
 | Page routes | 20 |
 | SQLite application tables | 17 |
-| Recorded agent runs | 20, at a 60 percent success rate |
+| Recorded runs | 20, at a 60 percent success rate |
 | Projects tracked | 22 |
 
 ## What the system does
 
-An agent run is a child process. A skill is a markdown file with frontmatter (routing keywords, a max duration) and a prompt body with {task} and {context} placeholders. Spawning a run launches a coding-agent CLI as a subprocess emitting a JSON event stream, parses that stream line by line, and pushes events to the browser over Server-Sent Events, so I can watch any run live. Concurrency is hard-capped so a burst of scheduled work cannot claim the whole machine.
+Every run is a child process. A skill is a markdown file with frontmatter (routing keywords, a max duration) and a prompt body with {task} and {context} placeholders. Starting a run launches a command-line tool as a subprocess emitting a JSON event stream, parses that stream line by line, and pushes events to the browser over Server-Sent Events, so I can watch any run live. Concurrency is hard-capped so a burst of scheduled work cannot claim the whole machine.
 
 A workflow chains skills into a dependency graph stored as JSON. Each step names the steps it waits on, everything unblocked fires in parallel, and an upstream step's result is interpolated into the downstream step's prompt, capped at 2,000 characters so a chatty step cannot crowd out the instructions. Definitions are validated at save time, including a graph cycle check, because rejecting a cycle when it is written beats discovering it mid-run. Retry rebuilds only the failed step and whatever was skipped downstream of it, so recovering from a mid-graph failure costs only the work below the break. A scheduler ticks once a minute against cron expressions and can fire a single skill or an entire workflow.
 
-One design decision carries most of the economics: agents run as subprocesses of a coding-agent CLI rather than as direct API calls to a model provider. Every run gets a full tool surface on day one (file reads and writes, shell, search) at zero incremental token cost, because runs draw on a subscription I already pay for instead of metered API pricing. A system built for unattended scheduled work only earns its keep if running it daily costs nothing extra.
+One design decision carries most of the economics: runs launch as subprocesses of a command-line tool rather than as direct calls to a metered API. Every run gets a full tool surface on day one (file reads and writes, shell, search) at zero incremental cost, because runs draw on a subscription I already pay for instead of per-use pricing. A system built for unattended scheduled work only earns its keep if running it daily costs nothing extra.
 
 The infrastructure is mine end to end. The app deploys with Docker to a TrueNAS server, the knowledge base syncs automatically between my laptop and the server, remote access goes over Tailscale (WireGuard) with nothing exposed to the public internet, and the dashboard installs as a PWA on my phone.
 
 ## How I build
 
-The code matters less than the workflow that produced it, because the workflow is what I would bring to a team. Every project I run follows the same loop, and this platform exists to automate the parts of that loop that used to live in my head.
+The code matters less than the workflow that produced it, because the workflow is what I would bring to a team, whether the deliverable is a model, a report, or a system. Every project I run follows the same loop, and this platform exists to automate the parts of that loop that used to live in my head.
 
-I write the plan first. The platform came out of a written master plan with seven phases, each phase shipping working features end to end and getting verified in the running app before the next began. Agents do the building; I own the spec, the reviews, and the verification.
+I write the plan first. The platform came out of a written master plan with seven phases, each phase shipping working features end to end and getting verified in the running app before the next began. I own the spec, the reviews, and the verification.
 
 Within a phase, the structure is adversarial on purpose:
 
-1. A pre-code panel of reviewer agents, each briefed to attack the spec from a different angle, runs before any code exists.
-2. Build agents run in parallel, each with a capped scope and an ownership map naming the files it may touch.
+1. A pre-code review panel, each reviewer briefed to attack the spec from a different angle, runs before any code exists.
+2. Build tracks run in parallel, each with a capped scope and an ownership map naming the files it may touch.
 3. An integrator merges the tracks and runs the automated test gate.
 4. A post-code review panel hunts for the defects the tests cannot see.
 5. I verify the gate and the repository state myself before anything counts as done.
 
-The panels earn their place with findings. In one recent phase, the pre-code panel returned 19 amendments and 2 blocking-class defects against a spec I had considered ready, and after the build, the post-code review caught 4 more blocking defects that 17 green spec files had sailed past. A green suite proves the assertions I thought to write; the adversarial pass exists for everything I did not think to assert.
+The panels earn their place with findings. In one recent phase, the pre-code panel returned 19 amendments and 2 blocking-class defects against a spec I had considered ready, and after the build, the post-code review caught 4 more blocking defects that 17 passing spec files had missed. A passing suite proves the assertions I thought to write; the adversarial pass exists for everything I did not think to assert.
 
 The platform also measures the loop instead of trusting it. Its ledger currently holds 20 recorded runs at a 60 percent success rate. That number stays on the dashboard, next to per-skill rates with run counts beside them, because a rate over 3 runs and a rate over 17 runs are different kinds of number, and because an automation system nobody measures quietly becomes a liability.
 
@@ -103,17 +105,17 @@ Placing history at the tie-break and nowhere else was deliberate. Keyword eviden
 
 ## What broke and what I learned
 
-**A four-hour run died at its one indispensable stage.** The largest multi-agent build I have launched ran about four hours and 2.2 million tokens, then died at its single integrator, the one agent holding the test gate for everything upstream. Every parallel track had finished; the stage that made their work durable had not. That failure forced the redesign I still build with: every agent gets a capped scope, integration splits into a foundation stage and a feature stage that owns the gate, and the next phase's review panel runs in parallel with the current build. The new shape got tested almost immediately, when another agent died mid-run under API flakiness. This time the loss was one track's tail: the foundation stage's work survived, the parallel review panel delivered its findings in full, and I finished the last component by hand. A failure now costs a track, never the afternoon.
+**A four-hour run died at its one indispensable stage.** The largest parallel build I have launched ran about four hours and 2.2 million tokens, then died at its single integrator, the one stage holding the test gate for everything upstream. Every parallel track had finished; the stage that made their work durable had not. That failure forced the redesign I still build with: every track gets a capped scope, integration splits into a foundation stage and a feature stage that owns the gate, and the next phase's review panel runs in parallel with the current build. The new shape got tested almost immediately, when another track died mid-run under API flakiness. This time the loss was one track's tail: the foundation stage's work survived, the parallel review panel delivered its findings in full, and I finished the last component by hand. A failure now costs a track, never the afternoon.
 
-**Never trust an agent's self-report.** During that recovery, a follow-up agent made 22 tool calls over about 40 minutes and left zero durable changes on disk. Twenty-two tool calls read like steady progress; the repository said nothing had happened. Since then the rule is mechanical: after any agent failure I run git status and re-run the test gate myself before believing anything landed. I treat an agent's completion claims as unverified until the repository and the gate agree with them.
+**Never trust a self-report.** During that recovery, a follow-up run made 22 tool calls over about 40 minutes and left zero durable changes on disk. Twenty-two tool calls read like steady progress; the repository said nothing had happened. Since then the rule is mechanical: after any failed run I run git status and re-run the test gate myself before believing anything landed. I treat a run's completion claims as unverified until the repository and the gate agree with them.
 
-**A memory path that silently loaded nothing.** My scheduled agents read their context from a knowledge base that lives on a network mount, and mounts drop. One loading path resolved a missing mount to an empty result and let the run continue as if it had context. The fix made loading fail loud: loaders now resolve a fallback chain (live mount, then a local replica), flag their output when it came from the fallback, and stop with a visible error when neither source is reachable. An automation that cannot see its inputs should stop and say so.
+**A memory path that silently loaded nothing.** My scheduled jobs read their context from a knowledge base that lives on a network mount, and mounts drop. One loading path resolved a missing mount to an empty result and let the run continue as if it had context. The fix made loading fail loud: loaders now resolve a fallback chain (live mount, then a local replica), flag their output when it came from the fallback, and stop with a visible error when neither source is reachable. An automation that cannot see its inputs should stop and say so.
 
 **Administering the server taught its own lessons.** The one I cite most: on TrueNAS datasets with restricted NFSv4 aclmode, chmod fails on every file even as root, and changing ownership to the container's uid is the entire fix. I learned that from a terminal full of "Operation not permitted", then wrote it down as a durable note that my future sessions load before touching container permissions. Same principle as the outcome ledger: a lesson that lives only in my head is a lesson I will pay for twice.
 
 ## The automation layer
 
-The same machinery runs my week. A scheduled agent writes a morning brief into that day's note at 6 a.m. Session handoffs are structured artifacts: ending a work session writes a continuation file plus a session note with frontmatter for decisions made, next actions, and duration, then links that note to its project and to the sessions before it. A new session starts by reading them, so context survives across days and machines instead of living inside one chat window. Automation output routes through a single notification utility with four channels (push, iMessage, email, or an append to the knowledge base) and rules about which channel fits which message; every scheduled task reports through it. The project layer reads the same knowledge base, currently 22 project folders, each carrying its own notes, tasks, and session history, so the dashboard and the agents work from the same source of truth I do.
+The same machinery runs my week. A scheduled job writes a morning brief into that day's note at 6 a.m. Session handoffs are structured artifacts: ending a work session writes a continuation file plus a session note with frontmatter for decisions made, next actions, and duration, then links that note to its project and to the sessions before it. A new session starts by reading them, so context survives across days and machines instead of living inside one chat window. Automation output routes through a single notification utility with four channels (push, iMessage, email, or an append to the knowledge base) and rules about which channel fits which message; every scheduled task reports through it. The project layer reads the same knowledge base, currently 22 project folders, each carrying its own notes, tasks, and session history, so the dashboard and the scheduled jobs work from the same source of truth I do.
 
 ## Tools
 
@@ -123,6 +125,5 @@ The same machinery runs my week. A scheduled agent writes a morning brief into t
 - cron-parser for schedules, chokidar for file watching, Server-Sent Events for live streams
 - Google Calendar API with OAuth for two-way calendar sync
 - Docker, TrueNAS, Syncthing, Tailscale (WireGuard)
-- Agents driven through Claude Code as managed subprocesses
 
-Everything above has a written record: the schema, the formulas, the incident notes, and the design decisions. Ask me to walk through any of it.
+Everything above has a written record: the schema, the formulas, the incident notes, and the design decisions. Ask me to walk through any of it: bryanwudarsky@gmail.com.
